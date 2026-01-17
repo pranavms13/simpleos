@@ -36,6 +36,9 @@ C_SRCS += drivers/timer.c drivers/keyboard.c
 C_SRCS += proc/process.c proc/scheduler.c
 ASM_SRCS += proc/context.S
 
+# Shell
+C_SRCS += shell/shell.c shell/history.c
+
 # Object files (with proper path transformation)
 C_OBJS := $(patsubst %.c,$(BUILD_DIR)/%.o,$(C_SRCS))
 ASM_OBJS := $(patsubst %.S,$(BUILD_DIR)/%.o,$(ASM_SRCS))
@@ -77,6 +80,7 @@ $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)/syscall
 	@mkdir -p $(BUILD_DIR)/drivers
 	@mkdir -p $(BUILD_DIR)/proc
+	@mkdir -p $(BUILD_DIR)/shell
 
 # Compile C files in root directory
 $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
@@ -101,6 +105,10 @@ $(BUILD_DIR)/drivers/%.o: drivers/%.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/proc/%.o: proc/%.c | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/shell/%.o: shell/%.c | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 

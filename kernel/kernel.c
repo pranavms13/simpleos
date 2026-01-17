@@ -5,6 +5,7 @@
  */
 
 #include "bootinfo.h"
+#include "console.h"
 
 /* CPU subsystem */
 #include "cpu/gdt.h"
@@ -27,21 +28,14 @@
 #include "proc/process.h"
 #include "proc/scheduler.h"
 
+/* Shell */
+#include "shell/shell.h"
+
 /* Framebuffer pointer */
 static uint32_t *fb;
 static uint32_t fb_width;
 static uint32_t fb_height;
 static uint32_t fb_pitch;
-
-/* Colors */
-#define COLOR_BLACK       0x00000000
-#define COLOR_WHITE       0x00FFFFFF
-#define COLOR_GREEN       0x0000FF00
-#define COLOR_CYAN        0x00FFFF00
-#define COLOR_YELLOW      0x0000FFFF
-#define COLOR_RED         0x000000FF
-#define COLOR_BLUE        0x00FF0000
-#define COLOR_DARK_BG     0x00202030
 
 /* Simple 8x8 font (minimal for demonstration) */
 static const uint8_t font8x8[128][8] = {
@@ -236,6 +230,12 @@ void console_print(const char *str) {
 
 void console_set_color(uint32_t color) {
     text_color = color;
+}
+
+void console_clear(void) {
+    clear_screen(COLOR_DARK_BG);
+    cursor_x = 0;
+    cursor_y = 0;
 }
 
 /* Print decimal number */
@@ -478,27 +478,16 @@ void kernel_main(boot_info_t *boot_info) {
     console_print("  - Interrupt Handling: GDT/IDT/PIC, exceptions + 16 IRQs\n\n");
     
     console_set_color(COLOR_GREEN);
-    console_print("Kernel ready. Press any key to echo input.\n\n");
+    console_print("Kernel ready. Launching shell...\n\n");
     console_set_color(COLOR_WHITE);
     
     /* Enable interrupts now that everything is initialized */
     __asm__ volatile("sti");
     
-    /* Simple keyboard echo loop */
+    shell_init();
+    shell_run();
+
     while (1) {
-        if (keyboard_available()) {
-            char c = keyboard_getchar();
-            console_putchar(c);
-        }
-        
-        /* Show timer ticks periodically */
-        static uint64_t last_tick = 0;
-        uint64_t current = timer_get_ticks();
-        if (current - last_tick >= 100) {  /* Every second */
-            last_tick = current;
-            /* Could display uptime here if desired */
-        }
-        
         __asm__ volatile("hlt");
     }
 }

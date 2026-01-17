@@ -17,6 +17,7 @@ static volatile int shift_pressed = 0;
 static volatile int ctrl_pressed = 0;
 static volatile int alt_pressed = 0;
 static volatile int capslock_on = 0;
+static volatile int extended_scancode = 0;
 
 /* Scancode to ASCII table (US QWERTY layout) - 128 entries */
 static const char scancode_to_ascii[128] = {
@@ -85,10 +86,21 @@ void keyboard_init(void) {
 void keyboard_handler(void) {
     /* Read scancode from keyboard */
     uint8_t scancode = inb(KEYBOARD_DATA);
+
+    /* Handle extended scancode prefix */
+    if (scancode == SCANCODE_EXTENDED) {
+        extended_scancode = 1;
+        return;
+    }
     
     /* Check for key release (bit 7 set) */
     if (scancode & SCANCODE_RELEASE) {
         uint8_t released = scancode & 0x7F;
+
+        if (extended_scancode) {
+            extended_scancode = 0;
+            return;
+        }
         
         /* Handle modifier key release */
         if (released == SCANCODE_LSHIFT || released == SCANCODE_RSHIFT) {
@@ -99,6 +111,31 @@ void keyboard_handler(void) {
             alt_pressed = 0;
         }
         
+        return;
+    }
+
+    if (extended_scancode) {
+        char special = 0;
+        switch (scancode) {
+            case 0x48:
+                special = KEY_UP;
+                break;
+            case 0x50:
+                special = KEY_DOWN;
+                break;
+            case 0x4B:
+                special = KEY_LEFT;
+                break;
+            case 0x4D:
+                special = KEY_RIGHT;
+                break;
+            default:
+                break;
+        }
+        extended_scancode = 0;
+        if (special) {
+            buffer_put(special);
+        }
         return;
     }
     

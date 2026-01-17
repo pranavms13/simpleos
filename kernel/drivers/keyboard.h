@@ -29,9 +29,16 @@
 #define SCANCODE_LALT        0x38
 #define SCANCODE_CAPSLOCK    0x3A
 #define SCANCODE_RELEASE     0x80
+#define SCANCODE_EXTENDED    0xE0
 
 /* Key buffer size */
 #define KEYBOARD_BUFFER_SIZE 256
+
+/* Special key codes returned by keyboard_getchar() */
+#define KEY_UP      0x80
+#define KEY_DOWN    0x81
+#define KEY_LEFT    0x82
+#define KEY_RIGHT   0x83
 
 /* Function prototypes */
 void keyboard_init(void);

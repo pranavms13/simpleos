@@ -75,6 +75,7 @@ void process_exit(int code);
 void process_destroy(process_t *proc);
 process_t *process_current(void);
 process_t *process_get(uint64_t pid);
+size_t process_get_table(process_t **table);
 
 /* Context switch (defined in context.S) */
 extern void context_switch(context_t **old, context_t *new);

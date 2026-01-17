@@ -143,6 +143,13 @@ process_t *process_get(uint64_t pid) {
     return NULL;
 }
 
+size_t process_get_table(process_t **table) {
+    if (table) {
+        *table = processes;
+    }
+    return MAX_PROCESSES;
+}
+
 /* Set current process (called by scheduler) */
 void process_set_current(process_t *proc) {
     current_process = proc;
