@@ -15,12 +15,30 @@ OBJCOPY := x86_64-elf-objcopy
 TARGET := $(BUILD_DIR)/kernel.bin
 ELF := $(BUILD_DIR)/kernel.elf
 
-# Sources
+# Sources - Main kernel
 C_SRCS := kernel.c
-ASM_SRCS := entry.S
 
-C_OBJS := $(addprefix $(BUILD_DIR)/,$(C_SRCS:.c=.o))
-ASM_OBJS := $(addprefix $(BUILD_DIR)/,$(ASM_SRCS:.S=.o))
+# CPU subsystem
+C_SRCS += cpu/gdt.c cpu/pic.c cpu/idt.c
+ASM_SRCS := entry.S cpu/isr.S
+
+# Memory management
+C_SRCS += mm/pmm.c mm/vmm.c mm/heap.c
+
+# System calls
+C_SRCS += syscall/syscall.c
+ASM_SRCS += syscall/syscall_entry.S
+
+# Device drivers
+C_SRCS += drivers/timer.c drivers/keyboard.c
+
+# Process management
+C_SRCS += proc/process.c proc/scheduler.c
+ASM_SRCS += proc/context.S
+
+# Object files (with proper path transformation)
+C_OBJS := $(patsubst %.c,$(BUILD_DIR)/%.o,$(C_SRCS))
+ASM_OBJS := $(patsubst %.S,$(BUILD_DIR)/%.o,$(ASM_SRCS))
 OBJS := $(ASM_OBJS) $(C_OBJS)
 
 # Linker script
@@ -51,19 +69,57 @@ LDFLAGS := -nostdlib \
 
 all: $(TARGET)
 
-# Create build directory
+# Create build directories
 $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
+	@mkdir -p $(BUILD_DIR)/cpu
+	@mkdir -p $(BUILD_DIR)/mm
+	@mkdir -p $(BUILD_DIR)/syscall
+	@mkdir -p $(BUILD_DIR)/drivers
+	@mkdir -p $(BUILD_DIR)/proc
 
-# Header dependencies
-HEADERS := io.h pci.h virtio.h net.h virtio_net.h $(INCLUDE_DIR)/bootinfo.h
-
-# Compile C files
-$(BUILD_DIR)/%.o: %.c $(HEADERS) | $(BUILD_DIR)
+# Compile C files in root directory
+$(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Assemble .S files
+# Compile C files in subdirectories
+$(BUILD_DIR)/cpu/%.o: cpu/%.c | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/mm/%.o: mm/%.c | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/syscall/%.o: syscall/%.c | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/drivers/%.o: drivers/%.c | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/proc/%.o: proc/%.c | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Assemble .S files in root directory
 $(BUILD_DIR)/%.o: %.S | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(AS) $(ASFLAGS) -c $< -o $@
+
+# Assemble .S files in subdirectories
+$(BUILD_DIR)/cpu/%.o: cpu/%.S | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(AS) $(ASFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/syscall/%.o: syscall/%.S | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(AS) $(ASFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/proc/%.o: proc/%.S | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) -c $< -o $@
 
 # Link kernel ELF
@@ -77,3 +133,10 @@ $(TARGET): $(ELF)
 
 clean:
 	rm -rf $(BUILD_DIR)
+
+# Print sources (for debugging)
+.PHONY: sources
+sources:
+	@echo "C Sources: $(C_SRCS)"
+	@echo "ASM Sources: $(ASM_SRCS)"
+	@echo "Objects: $(OBJS)"
